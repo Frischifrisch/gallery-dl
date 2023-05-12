@@ -99,7 +99,7 @@ class UgoiraPP(PostProcessor):
                 if self.twopass:
                     if "-f" not in self.args:
                         args += ("-f", self.extension)
-                    args += ("-passlogfile", tempdir + "/ffmpeg2pass", "-pass")
+                    args += ("-passlogfile", f"{tempdir}/ffmpeg2pass", "-pass")
                     self._exec(args + ["1", "-y", os.devnull])
                     self._exec(args + ["2", pathfmt.realpath])
                 else:
@@ -117,15 +117,14 @@ class UgoiraPP(PostProcessor):
                     pathfmt.set_extension("zip")
 
     def _concat(self, path):
-        ffconcat = path + "/ffconcat.txt"
+        ffconcat = f"{path}/ffconcat.txt"
 
         content = ["ffconcat version 1.0"]
         append = content.append
         for frame in self._frames:
-            append("file '{}'\nduration {}".format(
-                frame["file"], frame["delay"] / 1000))
+            append(f"""file '{frame["file"]}'\nduration {frame["delay"] / 1000}""")
         if self.repeat:
-            append("file '{}'".format(frame["file"]))
+            append(f"""file '{frame["file"]}'""")
         append("")
 
         with open(ffconcat, "w") as file:
@@ -151,11 +150,14 @@ class UgoiraPP(PostProcessor):
 
         return [
             self.ffmpeg,
-            "-f", "image2",
-            "-ts_from_file", "2",
-            "-pattern_type", "sequence",
-            "-i", "{}%06d.{}".format(
-                path.replace("%", "%%"), frame["file"].rpartition(".")[2]),
+            "-f",
+            "image2",
+            "-ts_from_file",
+            "2",
+            "-pattern_type",
+            "sequence",
+            "-i",
+            f'{path.replace("%", "%%")}%06d.{frame["file"].rpartition(".")[2]}',
         ]
 
     def _exec(self, args):
@@ -165,7 +167,7 @@ class UgoiraPP(PostProcessor):
     @staticmethod
     def calculate_framerate(framelist):
         counter = collections.Counter(frame["delay"] for frame in framelist)
-        fps = "1000/{}".format(min(counter))
+        fps = f"1000/{min(counter)}"
         return (fps, None) if len(counter) == 1 else (None, fps)
 
 

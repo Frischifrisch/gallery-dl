@@ -39,7 +39,7 @@ class MangadexExtractor(Extractor):
             data = self._transform(chapter)
             data["_extractor"] = MangadexChapterExtractor
             self._cache[uuid] = (chapter, data)
-            yield Message.Queue, self.root + "/chapter/" + uuid, data
+            yield (Message.Queue, f"{self.root}/chapter/{uuid}", data)
 
     def _transform(self, chapter):
         relationships = defaultdict(list)
@@ -116,8 +116,7 @@ class MangadexChapterExtractor(MangadexExtractor):
         yield Message.Directory, data
 
         cattributes = chapter["data"]["attributes"]
-        base = "{}/data/{}/".format(
-            self.api.athome_server(self.uuid)["baseUrl"], cattributes["hash"])
+        base = f'{self.api.athome_server(self.uuid)["baseUrl"]}/data/{cattributes["hash"]}/'
         for data["page"], page in enumerate(cattributes["data"], 1):
             text.nameext_from_url(page, data)
             yield Message.Url, base + page, data
@@ -181,22 +180,22 @@ class MangadexAPI():
                      else text.ensure_http_scheme(server).rstrip("/"))
 
     def athome_server(self, uuid):
-        return self._call("/at-home/server/" + uuid)
+        return self._call(f"/at-home/server/{uuid}")
 
     @memcache(keyarg=1)
     def author(self, uuid):
-        return self._call("/author/" + uuid)
+        return self._call(f"/author/{uuid}")
 
     def chapter(self, uuid):
-        return self._call("/chapter/" + uuid)
+        return self._call(f"/chapter/{uuid}")
 
     @memcache(keyarg=1)
     def group(self, uuid):
-        return self._call("/group/" + uuid)
+        return self._call(f"/group/{uuid}")
 
     @memcache(keyarg=1)
     def manga(self, uuid):
-        return self._call("/manga/" + uuid)
+        return self._call(f"/manga/{uuid}")
 
     def manga_feed(self, uuid):
         config = self.extractor.config
@@ -206,7 +205,7 @@ class MangadexAPI():
             "order[chapter]"      : order,
             "translatedLanguage[]": config("lang"),
         }
-        return self._pagination("/manga/" + uuid + "/feed", params)
+        return self._pagination(f"/manga/{uuid}/feed", params)
 
     def user_follows_manga_feed(self):
         params = {
@@ -224,11 +223,11 @@ class MangadexAPI():
         refresh_token = _refresh_token_cache(username)
         if refresh_token:
             self.extractor.log.info("Refreshing access token")
-            url = self.root + "/auth/refresh"
+            url = f"{self.root}/auth/refresh"
             data = {"token": refresh_token}
         else:
             self.extractor.log.info("Logging in as %s", username)
-            url = self.root + "/auth/login"
+            url = f"{self.root}/auth/login"
             data = {"username": username, "password": password}
 
         data = self.extractor.request(

@@ -36,7 +36,7 @@ class CyberdropAlbumExtractor(Extractor):
         self.album_id = match.group(1)
 
     def items(self):
-        url = self.root + "/a/" + self.album_id
+        url = f"{self.root}/a/{self.album_id}"
         extr = text.extract_from(self.request(url).text)
         extr("const albumData = {", "")
 
@@ -55,4 +55,4 @@ class CyberdropAlbumExtractor(Extractor):
             file = binascii.a2b_base64(file_b64).decode()
             text.nameext_from_url(file, data)
             data["filename"], _, data["id"] = data["filename"].rpartition("-")
-            yield Message.Url, "https://f.cyberdrop.cc/" + file, data
+            yield (Message.Url, f"https://f.cyberdrop.cc/{file}", data)

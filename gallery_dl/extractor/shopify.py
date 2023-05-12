@@ -29,8 +29,7 @@ class ShopifyExtractor(BaseExtractor):
 
         headers = {"X-Requested-With": "XMLHttpRequest"}
         for url in self.products():
-            response = self.request(
-                url + ".json", headers=headers, fatal=False)
+            response = self.request(f"{url}.json", headers=headers, fatal=False)
             if response.status_code >= 400:
                 self.log.warning('Skipping %s ("%s: %s")',
                                  url, response.status_code, response.reason)
@@ -81,7 +80,7 @@ class ShopifyCollectionExtractor(ShopifyExtractor):
     )
 
     def metadata(self):
-        return self.request(self.item_url + ".json").json()
+        return self.request(f"{self.item_url}.json").json()
 
     def products(self):
         params = {"page": 1}

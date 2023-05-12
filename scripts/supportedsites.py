@@ -264,15 +264,14 @@ def domain(cls):
         pass
 
     if hasattr(cls, "root") and cls.root:
-        return cls.root + "/"
+        return f"{cls.root}/"
 
     if hasattr(cls, "https"):
         scheme = "https" if cls.https else "http"
         netloc = cls.__doc__.split()[-1]
-        return "{}://{}/".format(scheme, netloc)
+        return f"{scheme}://{netloc}/"
 
-    test = next(cls._get_tests(), None)
-    if test:
+    if test := next(cls._get_tests(), None):
         url = test[0]
         return url[:url.find("/", 8)+1]
 
@@ -295,7 +294,7 @@ def subcategory_text(c, sc):
         return SUBCATEGORY_MAP[sc]
 
     sc = sc.capitalize()
-    return sc if sc.endswith("s") else sc + "s"
+    return sc if sc.endswith("s") else f"{sc}s"
 
 
 def category_key(c):
@@ -327,7 +326,7 @@ def build_extractor_list():
             for category, root in extr.instances:
                 base[category].append(extr.subcategory)
                 if category not in domains:
-                    domains[category] = root + "/"
+                    domains[category] = f"{root}/"
 
     # sort subcategory lists
     for base in categories.values():
@@ -368,7 +367,7 @@ def generate_output(columns, categories, domains):
     append = thead.append
     append("<tr>")
     for column in columns:
-        append("    <th>" + column[0] + "</th>")
+        append(f"    <th>{column[0]}</th>")
     append("</tr>")
 
     tbody = []
@@ -377,7 +376,7 @@ def generate_output(columns, categories, domains):
     for name, base in categories.items():
 
         if name and base:
-            name = BASE_MAP.get(name) or (name.capitalize() + " Instances")
+            name = BASE_MAP.get(name) or f"{name.capitalize()} Instances"
             append('\n<tr>\n    <td colspan="4"><strong>' +
                    name + '</strong></td>\n</tr>')
 
@@ -387,7 +386,7 @@ def generate_output(columns, categories, domains):
             for column in columns:
                 domain = domains[category]
                 content = column[2](category, subcategories, domain)
-                append("    <td>" + content + "</td>")
+                append(f"    <td>{content}</td>")
             append("</tr>")
 
     TEMPLATE = """# Supported Sites

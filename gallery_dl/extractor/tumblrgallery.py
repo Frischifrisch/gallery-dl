@@ -40,9 +40,8 @@ class TumblrgalleryTumblrblogExtractor(TumblrgalleryExtractor):
         page_num = 1
         while True:
             response = self.request(
-                "{}/tumblrblog/gallery/{}/{}.html"
-                .format(self.root, self.gallery_id, page_num),
-                allow_redirects=False
+                f"{self.root}/tumblrblog/gallery/{self.gallery_id}/{page_num}.html",
+                allow_redirects=False,
             )
             if response.status_code != 200:
                 return
@@ -115,9 +114,8 @@ class TumblrgallerySearchExtractor(TumblrgalleryExtractor):
         page_num = 1
         while True:
             response = self.request(
-                "{}/s.php?q={}&page={}"
-                .format(self.root, self.search_term, page_num),
-                allow_redirects=False
+                f"{self.root}/s.php?q={self.search_term}&page={page_num}",
+                allow_redirects=False,
             )
             if response.status_code != 200:
                 return
@@ -133,9 +131,7 @@ class TumblrgallerySearchExtractor(TumblrgalleryExtractor):
 
             for gallery_id in gallery_ids:
                 post_page = self.request(
-                    "{}/post/{}.html"
-                    .format(self.root, gallery_id),
-                    allow_redirects=False
+                    f"{self.root}/post/{gallery_id}.html", allow_redirects=False
                 ).text
                 for image_src in TumblrgalleryPostExtractor.images(
                     self, post_page

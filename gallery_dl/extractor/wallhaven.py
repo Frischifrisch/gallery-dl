@@ -109,8 +109,7 @@ class WallhavenCollectionsExtractor(WallhavenExtractor):
     def items(self):
         for collection in WallhavenAPI(self).collections(self.username):
             collection["_extractor"] = WallhavenCollectionExtractor
-            url = "https://wallhaven.cc/user/{}/favorites/{}".format(
-                self.username, collection["id"])
+            url = f'https://wallhaven.cc/user/{self.username}/favorites/{collection["id"]}'
             yield Message.Queue, url, collection
 
 
@@ -180,15 +179,15 @@ class WallhavenAPI():
         self.headers = {"X-API-Key": key}
 
     def info(self, wallpaper_id):
-        endpoint = "/v1/w/" + wallpaper_id
+        endpoint = f"/v1/w/{wallpaper_id}"
         return self._call(endpoint)["data"]
 
     def collection(self, username, collection_id):
-        endpoint = "/v1/collections/{}/{}".format(username, collection_id)
+        endpoint = f"/v1/collections/{username}/{collection_id}"
         return self._pagination(endpoint)
 
     def collections(self, username):
-        endpoint = "/v1/collections/" + username
+        endpoint = f"/v1/collections/{username}"
         return self._pagination(endpoint)
 
     def search(self, params):
@@ -196,7 +195,7 @@ class WallhavenAPI():
         return self._pagination(endpoint, params)
 
     def _call(self, endpoint, params=None):
-        url = "https://wallhaven.cc/api" + endpoint
+        url = f"https://wallhaven.cc/api{endpoint}"
         return self.extractor.request(
             url, headers=self.headers, params=params).json()
 

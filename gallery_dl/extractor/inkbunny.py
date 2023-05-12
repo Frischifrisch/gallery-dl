@@ -57,7 +57,7 @@ class InkbunnyExtractor(Extractor):
 
                 url = file["file_url_full"]
                 if "/private_files/" in url:
-                    url += "?sid=" + self.api.session_id
+                    url += f"?sid={self.api.session_id}"
                 yield Message.Url, url, post
 
 
@@ -243,7 +243,7 @@ class InkbunnyAPI():
             self.set_allowed_ratings()
 
     def _call(self, endpoint, params):
-        url = "https://inkbunny.net/api_" + endpoint + ".php"
+        url = f"https://inkbunny.net/api_{endpoint}.php"
         params["sid"] = self.session_id
         data = self.extractor.request(url, params=params).json()
 

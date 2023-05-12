@@ -85,13 +85,14 @@ class TwitterExtractor(Extractor):
 
             if "video_info" in media:
                 if self.videos == "ytdl":
-                    files.append({
-                        "url": "ytdl:{}/i/web/status/{}".format(
-                            self.root, tweet["id_str"]),
-                        "width"    : width,
-                        "height"   : height,
-                        "extension": None,
-                    })
+                    files.append(
+                        {
+                            "url": f'ytdl:{self.root}/i/web/status/{tweet["id_str"]}',
+                            "width": width,
+                            "height": height,
+                            "extension": None,
+                        }
+                    )
                 elif self.videos:
                     video_info = media["video_info"]
                     variant = max(
@@ -109,19 +110,24 @@ class TwitterExtractor(Extractor):
             elif "media_url_https" in media:
                 url = media["media_url_https"]
                 base, _, fmt = url.rpartition(".")
-                base += "?format=" + fmt + "&name="
-                files.append(text.nameext_from_url(url, {
-                    "url"      : base + "orig",
-                    "width"    : width,
-                    "height"   : height,
-                    "_fallback": self._image_fallback(base, url + ":"),
-                }))
+                base += f"?format={fmt}&name="
+                files.append(
+                    text.nameext_from_url(
+                        url,
+                        {
+                            "url": f"{base}orig",
+                            "width": width,
+                            "height": height,
+                            "_fallback": self._image_fallback(base, f"{url}:"),
+                        },
+                    )
+                )
             else:
                 files.append({"url": media["media_url"]})
 
     @staticmethod
     def _image_fallback(new, old):
-        yield old + "orig"
+        yield f"{old}orig"
 
         for size in ("large", "medium", "small"):
             yield new + size
@@ -140,7 +146,7 @@ class TwitterExtractor(Extractor):
                         files.append(bvals[key]["image_value"])
                         return
         elif self.videos:
-            url = "ytdl:{}/i/web/status/{}".format(self.root, tweet["id_str"])
+            url = f'ytdl:{self.root}/i/web/status/{tweet["id_str"]}'
             files.append({"url": url})
 
     def _extract_twitpic(self, tweet, files):
@@ -150,9 +156,9 @@ class TwitterExtractor(Extractor):
                 response = self.request(url, fatal=False)
                 if response.status_code >= 400:
                     continue
-                url = text.extract(
-                    response.text, 'name="twitter:image" value="', '"')[0]
-                if url:
+                if url := text.extract(
+                    response.text, 'name="twitter:image" value="', '"'
+                )[0]:
                     files.append({"url": url})
 
     def _transform_tweet(self, tweet):
@@ -175,12 +181,10 @@ class TwitterExtractor(Extractor):
             "retweet_count" : tweet["retweet_count"],
         }
 
-        hashtags = entities.get("hashtags")
-        if hashtags:
+        if hashtags := entities.get("hashtags"):
             tdata["hashtags"] = [t["text"] for t in hashtags]
 
-        mentions = entities.get("user_mentions")
-        if mentions:
+        if mentions := entities.get("user_mentions"):
             tdata["mentions"] = [{
                 "id": text.parse_int(u["id_str"]),
                 "name": u["screen_name"],
@@ -188,8 +192,7 @@ class TwitterExtractor(Extractor):
             } for u in mentions]
 
         content = tweet["full_text"]
-        urls = entities.get("urls")
-        if urls:
+        if urls := entities.get("urls"):
             for url in urls:
                 content = content.replace(url["url"], url["expanded_url"])
         txt, _, tco = content.rpartition(" ")
@@ -266,9 +269,9 @@ class TwitterExtractor(Extractor):
 
         token = util.generate_token()
         self.session.cookies.clear()
-        self.request(self.root + "/login")
+        self.request(f"{self.root}/login")
 
-        url = self.root + "/sessions"
+        url = f"{self.root}/sessions"
         cookies = {
             "_mb_tk": token,
         }
@@ -316,9 +319,8 @@ class TwitterTimelineExtractor(TwitterExtractor):
 
     def __init__(self, match):
         TwitterExtractor.__init__(self, match)
-        user_id = match.group(2)
-        if user_id:
-            self.user = "id:" + user_id
+        if user_id := match.group(2):
+            self.user = f"id:{user_id}"
 
     def tweets(self):
         return TwitterAPI(self).timeline_profile(self.user)
@@ -527,9 +529,9 @@ class TwitterImageExtractor(Extractor):
         self.id, self.fmt = match.groups()
 
     def items(self):
-        base = "https://pbs.twimg.com/media/" + self.id
-        new = base + "?format=" + self.fmt + "&name="
-        old = base + "." + self.fmt + ":"
+        base = f"https://pbs.twimg.com/media/{self.id}"
+        new = f"{base}?format={self.fmt}&name="
+        old = f"{base}.{self.fmt}:"
 
         data = {
             "filename": self.id,
@@ -538,7 +540,7 @@ class TwitterImageExtractor(Extractor):
         }
 
         yield Message.Directory, data
-        yield Message.Url, new + "orig", data
+        yield (Message.Url, f"{new}orig", data)
 
 
 class TwitterAPI():
@@ -605,11 +607,11 @@ class TwitterAPI():
             self.headers["x-guest-token"] = guest_token
 
     def tweet(self, tweet_id):
-        endpoint = "/2/timeline/conversation/{}.json".format(tweet_id)
+        endpoint = f"/2/timeline/conversation/{tweet_id}.json"
         tweets = []
         for tweet in self._pagination(endpoint):
             if tweet["id_str"] == tweet_id or \
-                    tweet.get("_retweet_id_str") == tweet_id:
+                        tweet.get("_retweet_id_str") == tweet_id:
                 tweets.append(tweet)
                 if "quoted_status_id_str" in tweet:
                     tweet_id = tweet["quoted_status_id_str"]
@@ -618,24 +620,24 @@ class TwitterAPI():
         return tweets
 
     def conversation(self, conversation_id):
-        endpoint = "/2/timeline/conversation/{}.json".format(conversation_id)
+        endpoint = f"/2/timeline/conversation/{conversation_id}.json"
         return self._pagination(endpoint)
 
     def timeline_profile(self, screen_name):
         user_id = self._user_id_by_screen_name(screen_name)
-        endpoint = "/2/timeline/profile/{}.json".format(user_id)
+        endpoint = f"/2/timeline/profile/{user_id}.json"
         params = self.params.copy()
         params["include_tweet_replies"] = "false"
         return self._pagination(endpoint, params)
 
     def timeline_media(self, screen_name):
         user_id = self._user_id_by_screen_name(screen_name)
-        endpoint = "/2/timeline/media/{}.json".format(user_id)
+        endpoint = f"/2/timeline/media/{user_id}.json"
         return self._pagination(endpoint)
 
     def timeline_favorites(self, screen_name):
         user_id = self._user_id_by_screen_name(screen_name)
-        endpoint = "/2/timeline/favorites/{}.json".format(user_id)
+        endpoint = f"/2/timeline/favorites/{user_id}.json"
         params = self.params.copy()
         params["sorted_by_time"] = "true"
         return self._pagination(endpoint)
@@ -724,9 +726,7 @@ class TwitterAPI():
                 root + endpoint, method=method, params=params,
                 headers=self.headers, fatal=None)
 
-            # update 'x-csrf-token' header (#1170)
-            csrf_token = response.cookies.get("ct0")
-            if csrf_token:
+            if csrf_token := response.cookies.get("ct0"):
                 self.headers["x-csrf-token"] = csrf_token
 
             if response.status_code < 400:
@@ -815,15 +815,14 @@ class TwitterAPI():
                     elif retweet:
                         tweet["author"] = users[retweet["user_id_str"]]
                         if "extended_entities" in retweet and \
-                                "extended_entities" not in tweet:
+                                    "extended_entities" not in tweet:
                             tweet["extended_entities"] = \
-                                retweet["extended_entities"]
+                                    retweet["extended_entities"]
                 tweet["user"] = users[tweet["user_id_str"]]
                 yield tweet
 
                 if "quoted_status_id_str" in tweet:
-                    quoted = tweets.get(tweet["quoted_status_id_str"])
-                    if quoted:
+                    if quoted := tweets.get(tweet["quoted_status_id_str"]):
                         quoted["author"] = users[quoted["user_id_str"]]
                         quoted["user"] = tweet["user"]
                         quoted["quoted"] = True

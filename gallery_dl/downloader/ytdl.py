@@ -41,7 +41,7 @@ class YoutubeDLDownloader(DownloaderBase):
             "max_filesize": text.parse_bytes(
                 self.config("filesize-max"), None),
         }
-        options.update(self.config("raw-options") or {})
+        options |= (self.config("raw-options") or {})
 
         if self.config("logging", True):
             options["logger"] = self.log
@@ -71,8 +71,7 @@ class YoutubeDLDownloader(DownloaderBase):
             else:
                 info_dict = info_dict["entries"][index]
 
-        extra = pathfmt.kwdict.get("_ytdl_extra")
-        if extra:
+        if extra := pathfmt.kwdict.get("_ytdl_extra"):
             info_dict.update(extra)
 
         return self._download_video(pathfmt, info_dict)

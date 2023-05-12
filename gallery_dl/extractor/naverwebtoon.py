@@ -37,7 +37,7 @@ class NaverwebtoonEpisodeExtractor(NaverwebtoonBase, GalleryExtractor):
 
     def __init__(self, match):
         query = match.group(1)
-        url = "{}/webtoon/detail.nhn?{}".format(self.root, query)
+        url = f"{self.root}/webtoon/detail.nhn?{query}"
         GalleryExtractor.__init__(self, match, url)
 
         query = text.parse_query(query)
@@ -85,7 +85,7 @@ class NaverwebtoonComicExtractor(NaverwebtoonBase, Extractor):
         self.page_no = text.parse_int(query.get("page"), 1)
 
     def items(self):
-        url = self.root + "/webtoon/list.nhn"
+        url = f"{self.root}/webtoon/list.nhn"
         params = {"titleId": self.title_id, "page": self.page_no}
         data = {"_extractor": NaverwebtoonEpisodeExtractor}
 
@@ -103,7 +103,8 @@ class NaverwebtoonComicExtractor(NaverwebtoonBase, Extractor):
     def get_episode_urls(self, page):
         """Extract and return all episode urls in page"""
         return [
-            self.root + "/webtoon/detail.nhn?" + query
+            f"{self.root}/webtoon/detail.nhn?{query}"
             for query in text.extract_iter(
-                page, '<a href="/webtoon/detail.nhn?', '"')
+                page, '<a href="/webtoon/detail.nhn?', '"'
+            )
         ][::2]

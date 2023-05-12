@@ -17,8 +17,7 @@ class GelbooruV01Extractor(booru.BooruExtractor):
     per_page = 20
 
     def _parse_post(self, post_id):
-        url = "{}/index.php?page=post&s=view&id={}".format(
-            self.root, post_id)
+        url = f"{self.root}/index.php?page=post&s=view&id={post_id}"
         page = self.request(url).text
 
         post = text.extract_all(page, (
@@ -86,8 +85,7 @@ class GelbooruV01TagExtractor(GelbooruV01Extractor):
         return {"search_tags": text.unquote(self.tags.replace("+", " "))}
 
     def posts(self):
-        url = "{}/index.php?page=post&s=list&tags={}&pid=".format(
-            self.root, self.tags)
+        url = f"{self.root}/index.php?page=post&s=list&tags={self.tags}&pid="
         pid = self.page_start
 
         while True:

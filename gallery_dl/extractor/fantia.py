@@ -47,10 +47,9 @@ class FantiaExtractor(Extractor):
             page = self.request(url, params=params, headers=headers).text
 
             post_id = None
-            for post_id in text.extract_iter(
-                    page, 'class="link-block" href="/posts/', '"'):
-                yield post_id
-
+            yield from text.extract_iter(
+                page, 'class="link-block" href="/posts/', '"'
+            )
             if not post_id:
                 return
             params["page"] += 1
@@ -58,11 +57,11 @@ class FantiaExtractor(Extractor):
     def _get_post_data(self, post_id):
         """Fetch and process post data"""
         headers = {"Referer": self.root}
-        url = self.root+"/api/v1/posts/"+post_id
+        url = f"{self.root}/api/v1/posts/{post_id}"
         resp = self.request(url, headers=headers).json()["post"]
         post = {
             "post_id": resp["id"],
-            "post_url": self.root + "/posts/" + str(resp["id"]),
+            "post_url": f"{self.root}/posts/" + str(resp["id"]),
             "post_title": resp["title"],
             "comment": resp["comment"],
             "rating": resp["rating"],
@@ -71,8 +70,8 @@ class FantiaExtractor(Extractor):
             "fanclub_user_id": resp["fanclub"]["user"]["id"],
             "fanclub_user_name": resp["fanclub"]["user"]["name"],
             "fanclub_name": resp["fanclub"]["name"],
-            "fanclub_url": self.root+"/fanclubs/"+str(resp["fanclub"]["id"]),
-            "tags": resp["tags"]
+            "fanclub_url": f"{self.root}/fanclubs/" + str(resp["fanclub"]["id"]),
+            "tags": resp["tags"],
         }
         return resp, post
 
@@ -95,7 +94,7 @@ class FantiaExtractor(Extractor):
                     yield photo["url"]["original"], post
             if "download_uri" in content:
                 post["file_id"] = content["id"]
-                yield self.root+"/"+content["download_uri"], post
+                yield (f"{self.root}/" + content["download_uri"], post)
 
 
 class FantiaCreatorExtractor(FantiaExtractor):
@@ -119,7 +118,7 @@ class FantiaCreatorExtractor(FantiaExtractor):
         self.creator_id = match.group(1)
 
     def posts(self):
-        url = "{}/fanclubs/{}/posts".format(self.root, self.creator_id)
+        url = f"{self.root}/fanclubs/{self.creator_id}/posts"
         return self._pagination(url)
 
 

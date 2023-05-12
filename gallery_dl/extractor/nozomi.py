@@ -29,11 +29,10 @@ class NozomiExtractor(Extractor):
 
         data = self.metadata()
         self.session.headers["Origin"] = self.root
-        self.session.headers["Referer"] = self.root + "/"
+        self.session.headers["Referer"] = f"{self.root}/"
 
         for post_id in map(str, self.posts()):
-            url = "https://j.nozomi.la/post/{}/{}/{}.json".format(
-                post_id[-1], post_id[-3:-1], post_id)
+            url = f"https://j.nozomi.la/post/{post_id[-1]}/{post_id[-3:-1]}/{post_id}.json"
             response = self.request(url, fatal=False)
 
             if response.status_code >= 400:
@@ -70,11 +69,11 @@ class NozomiExtractor(Extractor):
                 yield Message.Url, url, post
 
     def posts(self):
-        url = "https://n.nozomi.la" + self.nozomi
+        url = f"https://n.nozomi.la{self.nozomi}"
         offset = (text.parse_int(self.pnum, 1) - 1) * 256
 
         while True:
-            headers = {"Range": "bytes={}-{}".format(offset, offset+255)}
+            headers = {"Range": f"bytes={offset}-{offset + 255}"}
             response = self.request(url, headers=headers)
             yield from decode_nozomi(response.content)
 
@@ -151,7 +150,7 @@ class NozomiIndexExtractor(NozomiExtractor):
     def __init__(self, match):
         NozomiExtractor.__init__(self, match)
         index, self.pnum = match.groups()
-        self.nozomi = "/{}.nozomi".format(index or "index")
+        self.nozomi = f'/{index or "index"}.nozomi'
 
 
 class NozomiTagExtractor(NozomiExtractor):
@@ -170,7 +169,7 @@ class NozomiTagExtractor(NozomiExtractor):
         NozomiExtractor.__init__(self, match)
         tags, self.pnum = match.groups()
         self.tags = text.unquote(tags).lower()
-        self.nozomi = "/nozomi/{}.nozomi".format(self.tags)
+        self.nozomi = f"/nozomi/{self.tags}.nozomi"
 
     def metadata(self):
         return {"search_tags": self.tags}
@@ -198,16 +197,16 @@ class NozomiSearchExtractor(NozomiExtractor):
         result = set()
 
         def nozomi(path):
-            url = "https://j.nozomi.la/" + path + ".nozomi"
+            url = f"https://j.nozomi.la/{path}.nozomi"
             return decode_nozomi(self.request(url).content)
 
         for tag in self.tags:
             if tag[0] == "-":
                 if not index:
                     index = set(nozomi("index"))
-                items = index.difference(nozomi("nozomi/" + tag[1:]))
+                items = index.difference(nozomi(f"nozomi/{tag[1:]}"))
             else:
-                items = nozomi("nozomi/" + tag)
+                items = nozomi(f"nozomi/{tag}")
 
             if result:
                 result.intersection_update(items)

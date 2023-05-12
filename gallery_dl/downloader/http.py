@@ -55,8 +55,7 @@ class HttpDownloader(DownloaderBase):
                     "Invalid maximum file size (%r)", self.maxsize)
             self.maxsize = maxsize
         if self.rate:
-            rate = text.parse_bytes(self.rate)
-            if rate:
+            if rate := text.parse_bytes(self.rate):
                 if rate < self.chunk_size:
                     self.chunk_size = rate
                 self.rate = rate
@@ -104,13 +103,11 @@ class HttpDownloader(DownloaderBase):
             # check for .part file
             file_size = pathfmt.part_size()
             if file_size:
-                headers["Range"] = "bytes={}-".format(file_size)
+                headers["Range"] = f"bytes={file_size}-"
             # general headers
             if self.headers:
-                headers.update(self.headers)
-            # file-specific headers
-            extra = kwdict.get("_http_headers")
-            if extra:
+                headers |= self.headers
+            if extra := kwdict.get("_http_headers"):
                 headers.update(extra)
 
             # connect to (remote) source
@@ -136,7 +133,7 @@ class HttpDownloader(DownloaderBase):
             elif code == 416 and file_size:  # Requested Range Not Satisfiable
                 break
             else:
-                msg = "'{} {}' for '{}'".format(code, response.reason, url)
+                msg = f"'{code} {response.reason}' for '{url}'"
                 if code == 429 or 500 <= code < 600:  # Server Error
                     continue
                 self.log.warning(msg)
@@ -173,7 +170,7 @@ class HttpDownloader(DownloaderBase):
 
             # check filename extension against file header
             if adjust_extension and not offset and \
-                    pathfmt.extension in FILE_SIGNATURES:
+                        pathfmt.extension in FILE_SIGNATURES:
                 try:
                     file_header = next(
                         content if response.raw.chunked
@@ -183,7 +180,7 @@ class HttpDownloader(DownloaderBase):
                     print()
                     continue
                 if self._adjust_extension(pathfmt, file_header) and \
-                        pathfmt.exists():
+                            pathfmt.exists():
                     pathfmt.temppath = ""
                     return True
 
@@ -203,7 +200,7 @@ class HttpDownloader(DownloaderBase):
                     fp.write(file_header)
                 elif offset:
                     if adjust_extension and \
-                            pathfmt.extension in FILE_SIGNATURES:
+                                pathfmt.extension in FILE_SIGNATURES:
                         self._adjust_extension(pathfmt, fp.read(16))
                     fp.seek(offset)
 
@@ -217,8 +214,7 @@ class HttpDownloader(DownloaderBase):
 
                 # check file size
                 if size and fp.tell() < size:
-                    msg = "file size mismatch ({} < {})".format(
-                        fp.tell(), size)
+                    msg = f"file size mismatch ({fp.tell()} < {size})"
                     print()
                     continue
 
@@ -262,13 +258,12 @@ class HttpDownloader(DownloaderBase):
         mtype = mtype.partition(";")[0]
 
         if "/" not in mtype:
-            mtype = "image/" + mtype
+            mtype = f"image/{mtype}"
 
         if mtype in MIME_TYPES:
             return MIME_TYPES[mtype]
 
-        ext = mimetypes.guess_extension(mtype, strict=False)
-        if ext:
+        if ext := mimetypes.guess_extension(mtype, strict=False):
             return ext[1:]
 
         self.log.warning("Unknown MIME type '%s'", mtype)

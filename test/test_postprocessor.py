@@ -48,9 +48,9 @@ class TestPostprocessorModule(unittest.TestCase):
         postprocessor._cache.clear()
 
     def test_find(self):
-        for name in (postprocessor.modules):
+        for name in postprocessor.modules:
             cls = postprocessor.find(name)
-            self.assertEqual(cls.__name__, name.capitalize() + "PP")
+            self.assertEqual(cls.__name__, f"{name.capitalize()}PP")
             self.assertIs(cls.__base__, PostProcessor)
 
         self.assertEqual(postprocessor.find("foo"), None)
@@ -92,7 +92,7 @@ class BasePostprocessorTest(unittest.TestCase):
         if options is None:
             options = {}
         if data is not None:
-            kwdict.update(data)
+            kwdict |= data
 
         self.pathfmt = self.job.pathfmt
         self.pathfmt.set_directory(kwdict)
@@ -121,8 +121,8 @@ class ClassifyTest(BasePostprocessorTest):
 
         pp.prepare(self.pathfmt)
         path = os.path.join(self.dir.name, "test", "Pictures")
-        self.assertEqual(self.pathfmt.path, path + "/file.jpg")
-        self.assertEqual(self.pathfmt.realpath, path + "/file.jpg")
+        self.assertEqual(self.pathfmt.path, f"{path}/file.jpg")
+        self.assertEqual(self.pathfmt.realpath, f"{path}/file.jpg")
 
         with patch("os.makedirs") as mkdirs:
             self._trigger()
@@ -153,8 +153,8 @@ class ClassifyTest(BasePostprocessorTest):
 
         pp.prepare(self.pathfmt)
         path = os.path.join(self.dir.name, "test", "foo", "bar")
-        self.assertEqual(self.pathfmt.path, path + "/file.foo")
-        self.assertEqual(self.pathfmt.realpath, path + "/file.foo")
+        self.assertEqual(self.pathfmt.path, f"{path}/file.foo")
+        self.assertEqual(self.pathfmt.realpath, f"{path}/file.foo")
 
         with patch("os.makedirs") as mkdirs:
             self._trigger()
@@ -191,7 +191,7 @@ class MetadataTest(BasePostprocessorTest):
         with patch("builtins.open", mock_open()) as m:
             self._trigger()
 
-        path = self.pathfmt.realpath + ".JSON"
+        path = f"{self.pathfmt.realpath}.JSON"
         m.assert_called_once_with(path, "w", encoding="utf-8")
         self.assertEqual(self._output(m), """{
   "category": "test",
@@ -212,7 +212,7 @@ class MetadataTest(BasePostprocessorTest):
         with patch("builtins.open", mock_open()) as m:
             self._trigger()
 
-        path = self.pathfmt.realpath + ".txt"
+        path = f"{self.pathfmt.realpath}.txt"
         m.assert_called_once_with(path, "w", encoding="utf-8")
         self.assertEqual(self._output(m), "foo\nbar\nbaz\n")
 
@@ -279,7 +279,7 @@ class MetadataTest(BasePostprocessorTest):
         with patch("builtins.open", mock_open()) as m:
             self._trigger()
 
-        path = self.pathfmt.realdirectory + "file.json"
+        path = f"{self.pathfmt.realdirectory}file.json"
         m.assert_called_once_with(path, "w", encoding="utf-8")
 
     def test_metadata_extfmt_2(self):
@@ -291,7 +291,7 @@ class MetadataTest(BasePostprocessorTest):
         with patch("builtins.open", mock_open()) as m:
             self._trigger()
 
-        path = self.pathfmt.realdirectory + "file.2.EXT-data:tESt"
+        path = f"{self.pathfmt.realdirectory}file.2.EXT-data:tESt"
         m.assert_called_once_with(path, "w", encoding="utf-8")
 
     def test_metadata_directory(self):
@@ -302,7 +302,7 @@ class MetadataTest(BasePostprocessorTest):
         with patch("builtins.open", mock_open()) as m:
             self._trigger()
 
-        path = self.pathfmt.realdirectory + "metadata/file.ext.json"
+        path = f"{self.pathfmt.realdirectory}metadata/file.ext.json"
         m.assert_called_once_with(path, "w", encoding="utf-8")
 
     def test_metadata_directory_2(self):
@@ -314,7 +314,7 @@ class MetadataTest(BasePostprocessorTest):
         with patch("builtins.open", mock_open()) as m:
             self._trigger()
 
-        path = self.pathfmt.realdirectory + "metadata/file.json"
+        path = f"{self.pathfmt.realdirectory}metadata/file.json"
         m.assert_called_once_with(path, "w", encoding="utf-8")
 
     def test_metadata_filename(self):
@@ -326,7 +326,7 @@ class MetadataTest(BasePostprocessorTest):
         with patch("builtins.open", mock_open()) as m:
             self._trigger()
 
-        path = self.pathfmt.realdirectory + "test_file__meta_.data"
+        path = f"{self.pathfmt.realdirectory}test_file__meta_.data"
         m.assert_called_once_with(path, "w", encoding="utf-8")
 
     @staticmethod
@@ -367,9 +367,9 @@ class ZipTest(BasePostprocessorTest):
         self.assertEqual(self.job.hooks["file"][0], pp.write)
         self.assertEqual(pp.path, self.pathfmt.realdirectory)
         self.assertEqual(pp.delete, True)
-        self.assertEqual(pp.args, (
-            pp.path[:-1] + ".zip", "a", zipfile.ZIP_STORED, True,
-        ))
+        self.assertEqual(
+            pp.args, (f"{pp.path[:-1]}.zip", "a", zipfile.ZIP_STORED, True)
+        )
         self.assertTrue(pp.args[0].endswith("/test.zip"))
 
     def test_zip_safe(self):
@@ -377,9 +377,9 @@ class ZipTest(BasePostprocessorTest):
         self.assertEqual(self.job.hooks["file"][0], pp.write_safe)
         self.assertEqual(pp.path, self.pathfmt.realdirectory)
         self.assertEqual(pp.delete, True)
-        self.assertEqual(pp.args, (
-            pp.path[:-1] + ".zip", "a", zipfile.ZIP_STORED, True,
-        ))
+        self.assertEqual(
+            pp.args, (f"{pp.path[:-1]}.zip", "a", zipfile.ZIP_STORED, True)
+        )
         self.assertTrue(pp.args[0].endswith("/test.zip"))
 
     def test_zip_options(self):
@@ -389,9 +389,9 @@ class ZipTest(BasePostprocessorTest):
             "extension": "cbz",
         })
         self.assertEqual(pp.delete, False)
-        self.assertEqual(pp.args, (
-            pp.path[:-1] + ".cbz", "a", zipfile.ZIP_DEFLATED, True,
-        ))
+        self.assertEqual(
+            pp.args, (f"{pp.path[:-1]}.cbz", "a", zipfile.ZIP_DEFLATED, True)
+        )
         self.assertTrue(pp.args[0].endswith("/test.cbz"))
 
     def test_zip_write(self):
@@ -402,7 +402,7 @@ class ZipTest(BasePostprocessorTest):
 
             # write dummy file with 3 different names
             for i in range(3):
-                name = "file{}.ext".format(i)
+                name = f"file{i}.ext"
                 self.pathfmt.temppath = file.name
                 self.pathfmt.filename = name
 
@@ -447,7 +447,7 @@ class ZipTest(BasePostprocessorTest):
 
         # write 3 files
         for i in range(3):
-            self.pathfmt.temppath = self.pathfmt.realdirectory + "file.ext"
+            self.pathfmt.temppath = f"{self.pathfmt.realdirectory}file.ext"
             self.pathfmt.filename = "file{}.ext".format(i)
             self._trigger()
 

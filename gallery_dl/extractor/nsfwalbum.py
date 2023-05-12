@@ -41,21 +41,25 @@ class NsfwalbumAlbumExtractor(GalleryExtractor):
         }
 
     def images(self, page):
-        iframe = self.root + "/iframe_image.php?id="
-        backend = self.root + "/backend.php"
+        iframe = f"{self.root}/iframe_image.php?id="
+        backend = f"{self.root}/backend.php"
         for image_id in text.extract_iter(page, 'data-img-id="', '"'):
             spirit = self._annihilate(text.extract(self.request(
                 iframe + image_id).text, 'giraffe.annihilate("', '"')[0])
             params = {"spirit": spirit, "photo": image_id}
             data = self.request(backend, params=params).json()
-            yield data[0], {
-                "id"    : text.parse_int(image_id),
-                "width" : text.parse_int(data[1]),
-                "height": text.parse_int(data[2]),
-                "_http_validate": self._validate_response,
-                "_fallback": ("{}/imageProxy.php?photoId={}&spirit={}".format(
-                    self.root, image_id, spirit),),
-            }
+            yield (
+                data[0],
+                {
+                    "id": text.parse_int(image_id),
+                    "width": text.parse_int(data[1]),
+                    "height": text.parse_int(data[2]),
+                    "_http_validate": self._validate_response,
+                    "_fallback": (
+                        f"{self.root}/imageProxy.php?photoId={image_id}&spirit={spirit}",
+                    ),
+                },
+            )
 
     @staticmethod
     def _validate_response(response):

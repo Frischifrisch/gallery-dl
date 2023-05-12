@@ -41,7 +41,7 @@ class VkPhotosExtractor(Extractor):
         user_id = self.user_id
 
         if self.config("metadata"):
-            url = "{}/id{}".format(self.root, user_id)
+            url = f"{self.root}/id{user_id}"
             extr = text.extract_from(self.request(url).text)
             data = {"user": {
                 "id"  : user_id,
@@ -55,7 +55,7 @@ class VkPhotosExtractor(Extractor):
         else:
             data = {"user": {"id": user_id}}
 
-        photos_url = "{}/photos{}".format(self.root, user_id)
+        photos_url = f"{self.root}/photos{user_id}"
         headers = {
             "X-Requested-With": "XMLHttpRequest",
             "Origin"          : self.root,
@@ -70,7 +70,7 @@ class VkPhotosExtractor(Extractor):
 
         yield Message.Directory, data
         sub = re.compile(r"/imp[fg]/").sub
-        needle = 'data-id="{}_'.format(user_id)
+        needle = f'data-id="{user_id}_'
 
         while True:
             offset, html = self.request(

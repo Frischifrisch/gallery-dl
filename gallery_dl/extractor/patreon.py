@@ -61,36 +61,32 @@ class PatreonExtractor(Extractor):
 
     @staticmethod
     def _postfile(post):
-        postfile = post.get("post_file")
-        if postfile:
+        if postfile := post.get("post_file"):
             return (("postfile", postfile["url"], postfile["name"]),)
         return ()
 
     def _images(self, post):
         for image in post["images"]:
-            url = image.get("download_url")
-            if url:
+            if url := image.get("download_url"):
                 name = image.get("file_name") or self._filename(url) or url
                 yield "image", url, name
 
     def _attachments(self, post):
         for attachment in post["attachments"]:
-            url = self.request(
-                attachment["url"], method="HEAD",
-                allow_redirects=False, fatal=False,
-            ).headers.get("Location")
-
-            if url:
+            if url := self.request(
+                attachment["url"],
+                method="HEAD",
+                allow_redirects=False,
+                fatal=False,
+            ).headers.get("Location"):
                 yield "attachment", url, attachment["name"]
 
     @staticmethod
     def _content(post):
-        content = post.get("content")
-        if content:
+        if content := post.get("content"):
             for img in text.extract_iter(
                     content, '<img data-media-id="', '>'):
-                url = text.extract(img, 'src="', '"')[0]
-                if url:
+                if url := text.extract(img, 'src="', '"')[0]:
                     yield "content", url, url
 
     def posts(self):
@@ -183,35 +179,30 @@ class PatreonExtractor(Extractor):
         parts = url.partition("?")[0].split("/")
         parts.reverse()
 
-        for part in parts:
-            if len(part) == 32:
-                return part
-        return ""
+        return next((part for part in parts if len(part) == 32), "")
 
     @staticmethod
     def _build_url(endpoint, query):
         return (
-            "https://www.patreon.com/api/" + endpoint +
-
-            "?include=user,images,attachments,user_defined_tags,campaign,poll."
-            "choices,poll.current_user_responses.user,poll.current_user_respon"
-            "ses.choice,poll.current_user_responses.poll,access_rules.tier.nul"
-            "l"
-
-            "&fields[post]=change_visibility_at,comment_count,content,current_"
-            "user_can_delete,current_user_can_view,current_user_has_liked,embe"
-            "d,image,is_paid,like_count,min_cents_pledged_to_view,post_file,pu"
-            "blished_at,patron_count,patreon_url,post_type,pledge_url,thumbnai"
-            "l_url,teaser_text,title,upgrade_url,url,was_posted_by_campaign_ow"
-            "ner"
-            "&fields[user]=image_url,full_name,url"
-            "&fields[campaign]=avatar_photo_url,earnings_visibility,is_nsfw,is"
-            "_monthly,name,url"
-            "&fields[access_rule]=access_rule_type,amount_cents" + query +
-
-            "&json-api-use-default-includes=false"
-            "&json-api-version=1.0"
-        )
+            (
+                f"https://www.patreon.com/api/{endpoint}"
+                + "?include=user,images,attachments,user_defined_tags,campaign,poll."
+                "choices,poll.current_user_responses.user,poll.current_user_respon"
+                "ses.choice,poll.current_user_responses.poll,access_rules.tier.nul"
+                "l"
+                "&fields[post]=change_visibility_at,comment_count,content,current_"
+                "user_can_delete,current_user_can_view,current_user_has_liked,embe"
+                "d,image,is_paid,like_count,min_cents_pledged_to_view,post_file,pu"
+                "blished_at,patron_count,patreon_url,post_type,pledge_url,thumbnai"
+                "l_url,teaser_text,title,upgrade_url,url,was_posted_by_campaign_ow"
+                "ner"
+                "&fields[user]=image_url,full_name,url"
+                "&fields[campaign]=avatar_photo_url,earnings_visibility,is_nsfw,is"
+                "_monthly,name,url"
+                "&fields[access_rule]=access_rule_type,amount_cents"
+            )
+            + query
+        ) + "&json-api-use-default-includes=false" "&json-api-version=1.0"
 
 
 class PatreonCreatorExtractor(PatreonExtractor):
@@ -256,11 +247,10 @@ class PatreonCreatorExtractor(PatreonExtractor):
     def posts(self):
         query = text.parse_query(self.query)
 
-        creator_id = query.get("u")
-        if creator_id:
-            url = "{}/user/posts?u={}".format(self.root, creator_id)
+        if creator_id := query.get("u"):
+            url = f"{self.root}/user/posts?u={creator_id}"
         else:
-            url = "{}/{}/posts".format(self.root, self.creator)
+            url = f"{self.root}/{self.creator}/posts"
 
         page = self.request(url, notfound="creator").text
         campaign_id = text.extract(page, "/campaign/", "/")[0]
@@ -268,7 +258,7 @@ class PatreonCreatorExtractor(PatreonExtractor):
             raise exception.NotFoundError("creator")
 
         filters = "".join(
-            "&filter[{}={}".format(key[8:], text.escape(value))
+            f"&filter[{key[8:]}={text.escape(value)}"
             for key, value in query.items()
             if key.startswith("filters[")
         )
@@ -323,7 +313,7 @@ class PatreonPostExtractor(PatreonExtractor):
         self.slug = match.group(1)
 
     def posts(self):
-        url = "{}/posts/{}".format(self.root, self.slug)
+        url = f"{self.root}/posts/{self.slug}"
         page = self.request(url, notfound="post").text
         data = text.extract(page, "window.patreon.bootstrap,", "\n});")[0]
         post = json.loads(data + "}")["post"]

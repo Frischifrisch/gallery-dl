@@ -25,15 +25,15 @@ class GelbooruBase():
         url = post["file_url"]
         if url.startswith(("https://mp4.gelbooru.com/", "https://video-cdn")):
             md5 = post["md5"]
-            path = "/images/{}/{}/{}.webm".format(md5[0:2], md5[2:4], md5)
+            path = f"/images/{md5[:2]}/{md5[2:4]}/{md5}.webm"
             post["_fallback"] = GelbooruBase._video_fallback(path)
-            url = "https://img3.gelbooru.com" + path
+            url = f"https://img3.gelbooru.com{path}"
         return url
 
     @staticmethod
     def _video_fallback(path):
-        yield "https://img2.gelbooru.com" + path
-        yield "https://img1.gelbooru.com" + path
+        yield f"https://img2.gelbooru.com{path}"
+        yield f"https://img1.gelbooru.com{path}"
 
 
 class GelbooruTagExtractor(GelbooruBase,
@@ -68,8 +68,7 @@ class GelbooruPoolExtractor(GelbooruBase,
     )
 
     def metadata(self):
-        url = "{}/index.php?page=pool&s=show&id={}".format(
-            self.root, self.pool_id)
+        url = f"{self.root}/index.php?page=pool&s=show&id={self.pool_id}"
         page = self.request(url).text
 
         name, pos = text.extract(page, "<h3>Now Viewing: ", "</h3>")

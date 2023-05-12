@@ -58,9 +58,7 @@ class Extractor():
 
         if self._retries < 0:
             self._retries = float("inf")
-        if self.request_interval < self.request_interval_min:
-            self.request_interval = self.request_interval_min
-
+        self.request_interval = max(self.request_interval, self.request_interval_min)
         self._init_session()
         self._init_cookies()
         self._init_proxies()
@@ -95,8 +93,7 @@ class Extractor():
 
     def _config_shared_accumulate(self, key):
         values = config.accumulate(self._cfgpath, key)
-        conf = config.get(("extractor",), self.basecategory)
-        if conf:
+        if conf := config.get(("extractor",), self.basecategory):
             values[:0] = config.accumulate((self.subcategory,), key, conf=conf)
         return values
 
@@ -131,23 +128,23 @@ class Extractor():
                 if self._write_pages:
                     self._dump_response(response)
                 if 200 <= code < 400 or fatal is None and \
-                        (400 <= code < 500) or not fatal and \
-                        (400 <= code < 429 or 431 <= code < 500):
+                            (400 <= code < 500) or not fatal and \
+                            (400 <= code < 429 or 431 <= code < 500):
                     if encoding:
                         response.encoding = encoding
                     return response
                 if notfound and code == 404:
                     raise exception.NotFoundError(notfound)
 
-                msg = "'{} {}' for '{}'".format(code, response.reason, url)
+                msg = f"'{code} {response.reason}' for '{url}'"
                 server = response.headers.get("Server")
                 if server and server.startswith("cloudflare"):
                     if code == 503 and \
-                            b"jschl-answer" in response.content:
+                                b"jschl-answer" in response.content:
                         self.log.warning("Cloudflare IUAM challenge")
                         break
                     if code == 403 and \
-                            b'name="captcha-bypass"' in response.content:
+                                b'name="captcha-bypass"' in response.content:
                         self.log.warning("Cloudflare CAPTCHA")
                         break
                 if code < 500 and code != 429 and code != 430:
@@ -241,20 +238,17 @@ class Extractor():
             headers["Accept-Language"] = "en-US,en;q=0.5"
             headers["Accept-Encoding"] = "gzip, deflate"
 
-        custom_headers = self.config("headers")
-        if custom_headers:
+        if custom_headers := self.config("headers"):
             headers.update(custom_headers)
 
-        ciphers = self.config("ciphers")
-        if ciphers:
+        if ciphers := self.config("ciphers"):
             if isinstance(ciphers, list):
                 ciphers = ":".join(ciphers)
             session.mount("https://", HTTPSAdapter(ciphers))
 
     def _init_proxies(self):
         """Update the session's proxy map"""
-        proxies = self.config("proxy")
-        if proxies:
+        if proxies := self.config("proxy"):
             if isinstance(proxies, str):
                 proxies = {"http": proxies, "https": proxies}
             if isinstance(proxies, dict):
@@ -272,8 +266,7 @@ class Extractor():
         if self.cookiedomain is None:
             return
 
-        cookies = self.config("cookies")
-        if cookies:
+        if cookies := self.config("cookies"):
             if isinstance(cookies, dict):
                 self._update_cookies_dict(cookies, self.cookiedomain)
             elif isinstance(cookies, str):
@@ -411,7 +404,7 @@ class Extractor():
         )[:250]
 
         try:
-            with open(fname + ".dump", 'wb') as fp:
+            with open(f"{fname}.dump", 'wb') as fp:
                 util.dump_response(
                     response, fp, headers=(self._write_pages == "all"))
         except Exception as e:
@@ -562,8 +555,7 @@ class BaseExtractor(Extractor):
 
     @classmethod
     def update(cls, instances):
-        extra_instances = config.get(("extractor",), cls.basecategory)
-        if extra_instances:
+        if extra_instances := config.get(("extractor",), cls.basecategory):
             for category, info in extra_instances.items():
                 if isinstance(info, dict) and "root" in info:
                     instances[category] = info
@@ -577,7 +569,7 @@ class BaseExtractor(Extractor):
             pattern = info.get("pattern")
             if not pattern:
                 pattern = re.escape(root[root.index(":") + 3:])
-            pattern_list.append(pattern + "()")
+            pattern_list.append(f"{pattern}()")
 
         return r"(?:https?://)?(?:" + "|".join(pattern_list) + r")"
 
@@ -603,8 +595,10 @@ class HTTPSAdapter(HTTPAdapter):
 
 def _emulate_browser_firefox(session, platform):
     headers = session.headers
-    headers["User-Agent"] = ("Mozilla/5.0 (" + platform + "; rv:78.0) "
-                             "Gecko/20100101 Firefox/78.0")
+    headers["User-Agent"] = (
+        f"Mozilla/5.0 ({platform}" + "; rv:78.0) "
+        "Gecko/20100101 Firefox/78.0"
+    )
     headers["Accept"] = ("text/html,application/xhtml+xml,"
                          "application/xml;q=0.9,image/webp,*/*;q=0.8")
     headers["Accept-Language"] = "en-US,en;q=0.5"
@@ -642,8 +636,9 @@ def _emulate_browser_chrome(session, platform):
     headers = session.headers
     headers["Upgrade-Insecure-Requests"] = "1"
     headers["User-Agent"] = (
-        "Mozilla/5.0 (" + platform + ") AppleWebKit/537.36 "
-        "(KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36")
+        f"Mozilla/5.0 ({platform}" + ") AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36"
+    )
     headers["Accept"] = ("text/html,application/xhtml+xml,application/xml;"
                          "q=0.9,image/webp,image/apng,*/*;q=0.8")
     headers["Referer"] = None

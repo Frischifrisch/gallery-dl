@@ -36,9 +36,7 @@ class KemonopartyExtractor(Extractor):
 
             files = []
             append = files.append
-            file = post["file"]
-
-            if file:
+            if file := post["file"]:
                 file["type"] = "file"
                 append(file)
             for attachment in post["attachments"]:
@@ -57,9 +55,9 @@ class KemonopartyExtractor(Extractor):
                 post["type"] = file["type"]
                 url = file["path"]
                 if url[0] == "/":
-                    url = "https://data.kemono.party" + url
+                    url = f"https://data.kemono.party{url}"
                 elif url.startswith("https://kemono.party/"):
-                    url = "https://data.kemono.party" + url[20:]
+                    url = f"https://data.kemono.party{url[20:]}"
 
                 text.nameext_from_url(file["name"], post)
                 yield Message.Url, url, post
@@ -80,8 +78,8 @@ class KemonopartyUserExtractor(KemonopartyExtractor):
     def __init__(self, match):
         KemonopartyExtractor.__init__(self, match)
         service, user_id = match.groups()
-        self.api_url = "{}/api/{}/user/{}".format(self.root, service, user_id)
-        self.user_url = "{}/{}/user/{}".format(self.root, service, user_id)
+        self.api_url = f"{self.root}/api/{service}/user/{user_id}"
+        self.user_url = f"{self.root}/{service}/user/{user_id}"
 
     def posts(self):
         url = self.api_url
@@ -139,9 +137,8 @@ class KemonopartyPostExtractor(KemonopartyExtractor):
     def __init__(self, match):
         KemonopartyExtractor.__init__(self, match)
         service, user_id, post_id = match.groups()
-        self.api_url = "{}/api/{}/user/{}/post/{}".format(
-            self.root, service, user_id, post_id)
-        self.user_url = "{}/{}/user/{}".format(self.root, service, user_id)
+        self.api_url = f"{self.root}/api/{service}/user/{user_id}/post/{post_id}"
+        self.user_url = f"{self.root}/{service}/user/{user_id}"
 
     def posts(self):
         posts = self.request(self.api_url).json()

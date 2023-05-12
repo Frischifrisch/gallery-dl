@@ -25,7 +25,7 @@ class ImagebamExtractor(Extractor):
             self.session.cookies = self.cookies
 
     def get_image_data(self, data):
-        page_url = "{}/image/{}".format(self.root, data["image_key"])
+        page_url = f'{self.root}/image/{data["image_key"]}'
         page = self.request(page_url).text
         image_url, pos = text.extract(page, '<img src="https://images', '"')
 
@@ -38,7 +38,7 @@ class ImagebamExtractor(Extractor):
                 page, '<img src="https://images', '"')
 
         filename = text.unescape(text.extract(page, 'alt="', '"', pos)[0])
-        data["url"] = "https://images" + image_url
+        data["url"] = f"https://images{image_url}"
         data["filename"], _, data["extension"] = filename.rpartition(".")
 
 
@@ -66,7 +66,7 @@ class ImagebamGalleryExtractor(ImagebamExtractor):
     )
 
     def items(self):
-        url = "{}/gallery/{}".format(self.root, self.key)
+        url = f"{self.root}/gallery/{self.key}"
         page = self.request(url).text
 
         data = self.get_metadata(page)
@@ -94,8 +94,7 @@ class ImagebamGalleryExtractor(ImagebamExtractor):
                 page, '<a href="https://www.imagebam.com/image/', '"'))
             pos = page.find('rel="next" aria-label="Next')
             if pos > 0:
-                url = text.rextract(page, 'href="', '"', pos)[0]
-                if url:
+                if url := text.rextract(page, 'href="', '"', pos)[0]:
                     page = self.request(url).text
                     continue
             return keys

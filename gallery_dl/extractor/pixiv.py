@@ -37,9 +37,10 @@ class PixivExtractor(Extractor):
             transform_tags = None
         elif tags == "translated":
             def transform_tags(work):
-                work["tags"] = list(set(
-                    tag["translated_name"] or tag["name"]
-                    for tag in work["tags"]))
+                work["tags"] = list(
+                    {tag["translated_name"] or tag["name"] for tag in work["tags"]}
+                )
+
         else:
             def transform_tags(work):
                 work["tags"] = [tag["name"] for tag in work["tags"]]
@@ -209,7 +210,7 @@ class PixivMeExtractor(PixivExtractor):
         self.account = match.group(1)
 
     def items(self):
-        url = "https://pixiv.me/" + self.account
+        url = f"https://pixiv.me/{self.account}"
         data = {"_extractor": PixivUserExtractor}
         response = self.request(
             url, method="HEAD", allow_redirects=False, notfound="user")
@@ -369,7 +370,7 @@ class PixivFavoriteExtractor(PixivExtractor):
         for preview in self.api.user_following(self.user_id):
             user = preview["user"]
             user["_extractor"] = PixivUserExtractor
-            url = "https://www.pixiv.net/users/{}".format(user["id"])
+            url = f'https://www.pixiv.net/users/{user["id"]}'
             yield Message.Queue, url, user
 
 
@@ -421,7 +422,7 @@ class PixivRankingExtractor(PixivExtractor):
         date = query.get("date")
         if date:
             if len(date) == 8 and date.isdecimal():
-                date = "{}-{}-{}".format(date[0:4], date[4:6], date[6:8])
+                date = f"{date[:4]}-{date[4:6]}-{date[6:8]}"
             else:
                 self.log.warning("invalid date '%s'", date)
                 date = None
@@ -466,11 +467,11 @@ class PixivSearchExtractor(PixivExtractor):
 
         if self.word:
             self.word = text.unquote(self.word)
-        else:
-            if "word" not in query:
-                raise exception.StopExtraction("Missing search term")
+        elif "word" in query:
             self.word = query["word"]
 
+        else:
+            raise exception.StopExtraction("Missing search term")
         sort = query.get("order", "date_d")
         sort_map = {
             "date": "date_asc",
@@ -635,7 +636,7 @@ class PixivAppAPI():
         return self._call("v1/ugoira/metadata", params)["ugoira_metadata"]
 
     def _call(self, endpoint, params=None):
-        url = "https://app-api.pixiv.net/" + endpoint
+        url = f"https://app-api.pixiv.net/{endpoint}"
 
         self.login()
         response = self.extractor.request(url, params=params, fatal=False)

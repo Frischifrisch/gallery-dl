@@ -28,8 +28,7 @@ class MastodonExtractor(BaseExtractor):
 
     def items(self):
         for status in self.statuses():
-            attachments = status["media_attachments"]
-            if attachments:
+            if attachments := status["media_attachments"]:
                 self.prepare(status)
                 yield Message.Directory, status
                 for media in attachments:
@@ -98,7 +97,7 @@ class MastodonUserExtractor(MastodonExtractor):
     def statuses(self):
         api = MastodonAPI(self)
         username = self.item
-        handle = "@{}@{}".format(username, self.instance)
+        handle = f"@{username}@{self.instance}"
         for account in api.account_search(handle, 1):
             if account["username"] == username:
                 break
@@ -150,7 +149,7 @@ class MastodonAPI():
                     "Run 'gallery-dl oauth:mastodon:%s' to obtain one.",
                     extractor.instance)
 
-        self.headers = {"Authorization": "Bearer " + access_token}
+        self.headers = {"Authorization": f"Bearer {access_token}"}
 
     def account_search(self, query, limit=40):
         """Search for content"""
@@ -160,21 +159,17 @@ class MastodonAPI():
 
     def account_statuses(self, account_id):
         """Get an account's statuses"""
-        endpoint = "/v1/accounts/{}/statuses".format(account_id)
+        endpoint = f"/v1/accounts/{account_id}/statuses"
         params = {"only_media": "1"}
         return self._pagination(endpoint, params)
 
     def status(self, status_id):
         """Fetch a status"""
-        endpoint = "/v1/statuses/" + status_id
+        endpoint = f"/v1/statuses/{status_id}"
         return self._call(endpoint).json()
 
     def _call(self, endpoint, params=None):
-        if endpoint.startswith("http"):
-            url = endpoint
-        else:
-            url = self.root + "/api" + endpoint
-
+        url = endpoint if endpoint.startswith("http") else f"{self.root}/api{endpoint}"
         while True:
             response = self.extractor.request(
                 url, params=params, headers=self.headers, fatal=None)
